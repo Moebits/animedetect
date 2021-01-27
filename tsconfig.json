@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "declaration": true,
+        "lib": ["es2020", "dom"],
+        "downlevelIteration": true,
+        "esModuleInterop": true,
+        "strictNullChecks": true
+    }, 
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
