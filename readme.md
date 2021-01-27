@@ -86,5 +86,5 @@ export interface DetectAnimeResult {
 
 <details>
 <summary><a href="https://www.pixiv.net/en/artworks/67991994">Source</a></summary>
-<img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/example.png" />
+<img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/example.png"/>
 </details>
