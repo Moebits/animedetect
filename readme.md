@@ -1,4 +1,3 @@
-### DetectAnime
 <div align="left">
   <p>
     <a href="https://tenpi.github.io/detectanime"><img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/detectanimelogo.png" width="600" /></a>
@@ -18,7 +17,7 @@ npm install detectanime
 
 #### Basic Usage
 There is just one exported function that accepts either a link or file path to an image, gif, or video. If openCV detects an
-anime character, it returns `DetectAnimeResult`, otherwise it returns null. That's it.
+anime character, it returns `DetectAnimeResult`, otherwise it returns `null`. That's it.
 ```ts
 import detectanime from "detectanime"
 
@@ -41,7 +40,7 @@ const drawRectangle = await detectanime("./images/anime.png", {writeDir: "./imag
 
 /*Gifs have an additional option skipFactor that may speed things up on large files. Setting it to 2 will only extract
 every other frame, for example.*/
-const fasterGif = await detectanime("./images/agif.gif", {skipFactor: 2})
+const fasterGif = await detectanime("./images/largegif.gif", {skipFactor: 2})
 
 /*You can also optimize videos by setting a lower framerate (default is the same as original).*/
 const fasterVideo = await detectanime("./videos/episode.mp4", {framerate: 24})
@@ -87,5 +86,5 @@ export interface DetectAnimeResult {
 
 <details>
 <summary><a href="https://www.pixiv.net/en/artworks/67991994">Source</a></summary>
-<img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/example.jpg" />
+<img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/example.png" />
 </details>
