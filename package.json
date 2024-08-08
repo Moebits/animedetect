@@ -11,20 +11,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Tenpi/detectanime"
+    "url": "https://github.com/Moebits/detectanime"
   },
   "keywords": [
     "anime",
     "detection",
     "openCV"
   ],
-  "author": "Tenpi",
+  "author": "Moebits",
   "license": "MIT",
   "opencv4nodejs": {
     "autoBuildFlags": "-DBUILD_LIST=objdetect"
   },
   "devDependencies": {
-    "@tenpi/tslint": "^1.1.0",
     "@types/color": "^3.0.1",
     "@types/fluent-ffmpeg": "^2.1.16",
     "@types/node": "^14.14.22",
