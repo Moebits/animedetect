@@ -21,7 +21,10 @@
   "author": "Moebits",
   "license": "MIT",
   "opencv4nodejs": {
-    "autoBuildFlags": "-DBUILD_LIST=objdetect"
+    "disableAutoBuild": 1,
+    "opencvIncludeDir": "/opt/homebrew/Cellar/opencv/4.9.0_4/include",
+    "opencvLibDir": "/opt/homebrew/Cellar/opencv/4.9.0_4/lib",
+    "opencvBinDir": "/opt/homebrew/Cellar/opencv/4.9.0_4/bin"
   },
   "devDependencies": {
     "@types/color": "^3.0.1",
