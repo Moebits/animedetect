@@ -1,6 +1,6 @@
 {
   "name": "detectanime",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Detects anime/manga characters in Node.js",
   "main": "dist/anime.js",
   "types": "dist/anime.d.ts",
