@@ -1,6 +1,7 @@
 import Color from "color"
 import jimp from "jimp"
-import cv from "@techstark/opencv-js"
+import cv from "./opencv.js"
+import {RectVector} from "./cvtypes.js"
 import ffmpeg from "fluent-ffmpeg"
 import fs from "fs"
 import gifFrames from "gif-frames"
@@ -27,7 +28,7 @@ export interface AnimeDetectOptions {
 export interface AnimeDetectResult {
     frame?: number
     dest?: string
-    objects: cv.RectVector
+    objects: RectVector
 }
 
 const videoExtensions = [".mp4", ".mov", ".avi", ".flv", ".mkv", ".webm"]
