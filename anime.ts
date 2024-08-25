@@ -147,7 +147,6 @@ const detectImage = async (link: string, options?: AnimeDetectOptions) => {
 
     const objects = new cv.RectVector()
     classifier.detectMultiScale(grayImg, objects, options.scaleFactor, options.minNeighbors, 0, minSize, maxSize)
-    console.log(objects.size())
 
     let result = {objects} as any
 
