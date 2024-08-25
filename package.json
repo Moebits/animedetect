@@ -1,14 +1,13 @@
 {
   "name": "animedetect",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Detects anime/manga characters in Node.js",
   "main": "dist/anime.js",
   "types": "dist/anime.d.ts",
   "scripts": {
-    "start": "tsc -p tsconfig.json && npm run copy && node dist/start.js",
-    "copy": "cp opencv.js dist/opencv.js",
+    "start": "tsc -p tsconfig.json && node dist/start.js",
     "test": "ts-mocha --timeout 30000 -p tsconfig.json test/**/*.spec.ts",
-    "prepublishOnly": "tsc -p tsconfig.json && npm run copy"
+    "prepublishOnly": "tsc"
   },
   "repository": {
     "type": "git",
@@ -28,6 +27,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@techstark/opencv-js": "^4.10.0-beta.1",
     "color": "^3.1.3",
     "fluent-ffmpeg": "^2.1.2",
     "gif-frames": "^1.0.1",

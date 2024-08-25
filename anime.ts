@@ -1,6 +1,6 @@
 import Color from "color"
 import jimp from "jimp"
-import cv from "./opencv.js"
+import cv from "@techstark/opencv-js"
 import ffmpeg from "fluent-ffmpeg"
 import fs from "fs"
 import gifFrames from "gif-frames"
@@ -9,59 +9,7 @@ import util from "util"
 
 const exec = util.promisify(require("child_process").exec)
 
-export declare class Point {
-    public constructor(x: number, y: number)
-    public x: number
-    public y: number
-}
-
-export declare class Size {
-    public constructor(width: number, height: number)
-    public width: number
-    public height: number
-}
-
-export declare class Rect {
-    public constructor()
-    public constructor(point: Point, size: Size)
-    public constructor(x: number, y: number, width: number, height: number)
-    public x: number
-    public y: number
-    public width: number
-    public height: number
-}
-
-export declare class Vector<T> {
-    isAliasOf(other: any): boolean
-    clone(): any
-    delete(): any
-    isDeleted(): boolean
-    deleteLater(): any
-    get(i: number): T
-    get(i: number, j: number, data: any): T
-    set(i: number, t: T): void
-    put(i: number, j: number, data: any): any
-    size(): number
-    push_back(n: T): any
-    resize(count: number, value?: T): void
-}
-
-export declare class RectVector extends Rect implements Vector<Rect> {
-    get(i: number): Rect;
-    isAliasOf(...a: any[]): any;
-    clone(...a: any[]): any;
-    delete(...a: any[]): any;
-    isDeleted(...a: any[]): any;
-    deleteLater(...a: any[]): any;
-    set(i: number, t: Rect): void;
-    put(i: number, j: number, data: any): any;
-    size(): number;
-    push_back(n: Rect): void;
-    resize(count: number, value?: Rect | undefined): void;
-    delete(): void;
-}
-
-export interface DetectAnimeOptions {
+export interface AnimeDetectOptions {
     cascade?: string
     scaleFactor?: number
     minNeighbors?: number
@@ -76,10 +24,10 @@ export interface DetectAnimeOptions {
     writeDir?: string
 }
 
-export interface DetectAnimeResult {
+export interface AnimeDetectResult {
     frame?: number
     dest?: string
-    objects: RectVector
+    objects: cv.RectVector
 }
 
 const videoExtensions = [".mp4", ".mov", ".avi", ".flv", ".mkv", ".webm"]
@@ -154,10 +102,27 @@ const matToJimp = (mat: cv.Mat) => {
             }
         }
     }
-    return jimpImage
+    return jimpImage as jimp
 }
 
-const detectImage = async (link: string, options?: DetectAnimeOptions) => {
+const sharpen = async (link: string, options?: {ksize?: number, sigma?: number, amount?: number}) => {
+    if (!options) options = {}
+    let imgData = await jimp.read(link)
+    const img = cv.matFromImageData(imgData.bitmap)
+
+    const ksize = options.ksize ? Number(options.ksize) : 5.0
+    const sigma = options.sigma ? Number(options.sigma) : 1.0
+    const amount = options.amount ? Number(options.amount) : 1.0
+
+    const blurry = new cv.Mat()
+    cv.GaussianBlur(img, blurry, new cv.Size(ksize, ksize), sigma, sigma, cv.BORDER_DEFAULT)
+
+    const sharp = new cv.Mat()
+    cv.addWeighted(img, 1 + amount, blurry, -amount, 0, sharp)
+    return matToJimp(sharp)
+}
+
+const detectImage = async (link: string, options?: AnimeDetectOptions) => {
     if (!options) options = {}
     let imgData = await jimp.read(link)
     const img = cv.matFromImageData(imgData.bitmap)
@@ -197,14 +162,13 @@ const detectImage = async (link: string, options?: DetectAnimeOptions) => {
         }
         const dest = `${options.writeDir}/${path.basename(link, path.extname(link))}-result${path.extname(link)}`
         const jimpImage = matToJimp(newImg)
-        console.log(jimpImage)
         jimpImage.write(dest)
         result = {...result, dest}
     }
-    return objects.size() ? result as unknown as DetectAnimeResult : null
+    return objects.size() ? result as unknown as AnimeDetectResult : null
 }
 
-const detectGIF = async (link: string, options?: DetectAnimeOptions) => {
+const detectGIF = async (link: string, options?: AnimeDetectOptions) => {
     if (!options) options = {}
     if (link.startsWith("http") && options.downloadDir) {
         if (!fs.existsSync(options.downloadDir)) fs.mkdirSync(options.downloadDir, {recursive: true})
@@ -228,7 +192,7 @@ const detectGIF = async (link: string, options?: DetectAnimeOptions) => {
         promiseArray.push(new Promise((resolve) => writeStream.on("finish", resolve)))
     }
     await Promise.all(promiseArray)
-    let result = null as DetectAnimeResult | null
+    let result = null as AnimeDetectResult | null
     for (let i = 0; i < frameArray.length; i++) {
         result = await detectImage(frameArray[i], options)
         if (result) {
@@ -240,7 +204,7 @@ const detectGIF = async (link: string, options?: DetectAnimeOptions) => {
     return result
 }
 
-const detectVideo = async (link: string, options?: DetectAnimeOptions) => {
+const detectVideo = async (link: string, options?: AnimeDetectOptions) => {
     if (!options) options = {}
     if (link.startsWith("http") && options.downloadDir) {
         if (!fs.existsSync(options.downloadDir)) fs.mkdirSync(options.downloadDir, {recursive: true})
@@ -260,7 +224,7 @@ const detectVideo = async (link: string, options?: DetectAnimeOptions) => {
         .on("end", () => resolve())
     })
     const frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
-    let result = null as DetectAnimeResult | null
+    let result = null as AnimeDetectResult | null
     for (let i = 0; i < frameArray.length; i++) {
         result = await detectImage(frameArray[i], options)
         if (result) {
@@ -272,12 +236,14 @@ const detectVideo = async (link: string, options?: DetectAnimeOptions) => {
     return result
 }
 
-export default async function detectAnime(link: string, options?: DetectAnimeOptions) {
+const animedetect = async (link: string, options?: AnimeDetectOptions) => {
     if (!path.extname(link)) return Promise.reject("link or file path is invalid")
     if (path.extname(link) === ".gif") return detectGIF(link, options)
     if (videoExtensions.includes(path.extname(link))) return detectVideo(link, options)
     return detectImage(link, options)
 }
 
-module.exports.default = detectAnime
-module.exports = detectAnime
+module.exports.default = {cv, animedetect, sharpen}
+module.exports = {cv, animedetect, sharpen}
+
+export {animedetect, sharpen, cv}
