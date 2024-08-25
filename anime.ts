@@ -1,13 +1,65 @@
-import axios from "axios"
 import Color from "color"
+import jimp from "jimp"
+import cv from "./opencv.js"
 import ffmpeg from "fluent-ffmpeg"
 import fs from "fs"
 import gifFrames from "gif-frames"
-import cv, {Rect, Vec3} from "opencv4nodejs"
 import path from "path"
 import util from "util"
 
 const exec = util.promisify(require("child_process").exec)
+
+export declare class Point {
+    public constructor(x: number, y: number)
+    public x: number
+    public y: number
+}
+
+export declare class Size {
+    public constructor(width: number, height: number)
+    public width: number
+    public height: number
+}
+
+export declare class Rect {
+    public constructor()
+    public constructor(point: Point, size: Size)
+    public constructor(x: number, y: number, width: number, height: number)
+    public x: number
+    public y: number
+    public width: number
+    public height: number
+}
+
+export declare class Vector<T> {
+    isAliasOf(other: any): boolean
+    clone(): any
+    delete(): any
+    isDeleted(): boolean
+    deleteLater(): any
+    get(i: number): T
+    get(i: number, j: number, data: any): T
+    set(i: number, t: T): void
+    put(i: number, j: number, data: any): any
+    size(): number
+    push_back(n: T): any
+    resize(count: number, value?: T): void
+}
+
+export declare class RectVector extends Rect implements Vector<Rect> {
+    get(i: number): Rect;
+    isAliasOf(...a: any[]): any;
+    clone(...a: any[]): any;
+    delete(...a: any[]): any;
+    isDeleted(...a: any[]): any;
+    deleteLater(...a: any[]): any;
+    set(i: number, t: Rect): void;
+    put(i: number, j: number, data: any): any;
+    size(): number;
+    push_back(n: Rect): void;
+    resize(count: number, value?: Rect | undefined): void;
+    delete(): void;
+}
 
 export interface DetectAnimeOptions {
     cascade?: string
@@ -27,13 +79,7 @@ export interface DetectAnimeOptions {
 export interface DetectAnimeResult {
     frame?: number
     dest?: string
-    objects: Array<{
-        height: number
-        width: number
-        x: number
-        y: number
-    }>
-    numDetections: number[]
+    objects: RectVector
 }
 
 const videoExtensions = [".mp4", ".mov", ".avi", ".flv", ".mkv", ".webm"]
@@ -65,50 +111,97 @@ const removeDirectory = (dir: string) => {
 
 const download = async (link: string, dest: string) => {
     const headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36", "referer": "https://www.pixiv.net/"}
-    const bin = await axios.get(link, {responseType: "arraybuffer", headers}).then((r) => r.data)
+    const bin = await fetch(link, {headers}).then((r) => r.arrayBuffer()) as any
     fs.writeFileSync(dest, Buffer.from(bin, "binary"))
+}
+
+const matToJimp = (mat: cv.Mat) => {
+    const channels = mat.channels()
+    const {cols: width, rows: height} = mat
+    const jimpImage = new jimp(width, height)
+    // Handling Grayscale Images
+    if (channels === 1) {
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const pixelValue = mat.ucharAt(y, x)
+                const color = jimp.rgbaToInt(pixelValue, pixelValue, pixelValue, 255)
+                jimpImage.setPixelColor(color, x, y)
+            }
+        }
+    } 
+    // Handling RGB Images
+    else if (channels === 3) {
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const r = mat.ucharPtr(y, x)[0]
+                const g = mat.ucharPtr(y, x)[1]
+                const b = mat.ucharPtr(y, x)[2]
+                const color = jimp.rgbaToInt(r, g, b, 255)
+                jimpImage.setPixelColor(color, x, y)
+            }
+        }
+    } 
+    // Handling RGBA Images
+    else if (channels === 4) {
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const r = mat.ucharPtr(y, x)[0]
+                const g = mat.ucharPtr(y, x)[1]
+                const b = mat.ucharPtr(y, x)[2]
+                const a = mat.ucharPtr(y, x)[3]
+                const color = jimp.rgbaToInt(r, g, b, a)
+                jimpImage.setPixelColor(color, x, y)
+            }
+        }
+    }
+    return jimpImage
 }
 
 const detectImage = async (link: string, options?: DetectAnimeOptions) => {
     if (!options) options = {}
-    let temp = ""
-    if (link.startsWith("http")) {
-        if (options.downloadDir) {
-            if (!fs.existsSync(options.downloadDir)) fs.mkdirSync(options.downloadDir, {recursive: true})
-            await download(link, `${options.downloadDir}/${path.basename(link)}`)
-            link = `${options.downloadDir}/${path.basename(link)}`
-        } else {
-            temp = `./${path.basename(link)}`
-            await download(link, temp)
-            link = temp
-        }
-    }
-    const img = await cv.imreadAsync(link, cv.IMREAD_COLOR)
-    if (!options.cascade) options.cascade = path.join(__dirname, `../cascade/animeface.xml`)
-    const classifier = new cv.CascadeClassifier(options.cascade)
-    const grayImg = img.bgrToGray()
+    let imgData = await jimp.read(link)
+    const img = cv.matFromImageData(imgData.bitmap)
+    const newImg = img.clone()
+    const grayImg = new cv.Mat()
+    cv.cvtColor(img, grayImg, cv.COLOR_RGBA2GRAY, 0)
+
+    if (!options.cascade) options.cascade = path.join(__dirname, `../cascade/lbpcascade_animeface.xml`)
+    const data = new Uint8Array(fs.readFileSync(options.cascade))
+    cv.FS_createDataFile("/", "lbpcascade_animeface.xml", data, true, false, false)
+    const classifier = new cv.CascadeClassifier("lbpcascade_animeface.xml")
+
     if (!options.scaleFactor) options.scaleFactor = 1.1
     if (!options.minNeighbors) options.minNeighbors = 5
-    const minSize = options.minSize?.[0] && options.minSize[1] ? new cv.Size(options.minSize[0], options.minSize[1]) : new cv.Size()
-    const maxSize = options.maxSize?.[0] && options.maxSize[1] ? new cv.Size(options.maxSize[0], options.maxSize[1]) : new cv.Size()
-    let result = await classifier.detectMultiScaleAsync(grayImg, options.scaleFactor, options.minNeighbors, 0, minSize, maxSize) as DetectAnimeResult
-    if (result.objects[0] && options.writeDir) {
+    const minSize = options.minSize?.[0] && options.minSize[1] ? new cv.Size(options.minSize[0], options.minSize[1]) : new cv.Size(0, 0)
+    const maxSize = options.maxSize?.[0] && options.maxSize[1] ? new cv.Size(options.maxSize[0], options.maxSize[1]) : new cv.Size(0, 0)
+
+    const objects = new cv.RectVector()
+    classifier.detectMultiScale(grayImg, objects, options.scaleFactor, options.minNeighbors, 0, minSize, maxSize)
+    console.log(objects.size())
+
+    let result = {objects} as any
+
+    if (objects.size() && options.writeDir) {
         if (!fs.existsSync(options.writeDir)) fs.mkdirSync(options.writeDir, {recursive: true})
-        if (!options.thickness) options.thickness = 2
-        let color = new Vec3(44, 41, 255)
+        if (!options.thickness) options.thickness = 1
+        
+        let color = [255, 44, 41, 255]
         if (options.color) {
             const c = new Color(options.color)
-            color = new Vec3(c.blue(), c.green(), c.red())
+            color = [255, c.blue(), c.green(), c.red()]
         }
-        result.objects.map((rect) => {
-            img.drawRectangle(rect as Rect, color, options?.thickness)
-        })
+        for (let i = 0; i < objects.size(); i++) {
+            const point1 = new cv.Point(objects.get(i).x, objects.get(i).y)
+            const point2 = new cv.Point(objects.get(i).x + objects.get(i).width, objects.get(i).y + objects.get(i).height)
+            cv.rectangle(newImg, point1, point2, color, options.thickness)
+        }
         const dest = `${options.writeDir}/${path.basename(link, path.extname(link))}-result${path.extname(link)}`
-        await cv.imwriteAsync(dest, img)
+        const jimpImage = matToJimp(newImg)
+        console.log(jimpImage)
+        jimpImage.write(dest)
         result = {...result, dest}
     }
-    if (temp) fs.unlinkSync(temp)
-    return result.objects[0] ? result : null
+    return objects.size() ? result as unknown as DetectAnimeResult : null
 }
 
 const detectGIF = async (link: string, options?: DetectAnimeOptions) => {

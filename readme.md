@@ -1,18 +1,18 @@
 <div align="left">
   <p>
-    <a href="https://tenpi.github.io/detectanime"><img src="https://raw.githubusercontent.com/Tenpi/detectanime/master/assets/detectanimelogo.png" width="600" /></a>
+    <a href="https://moebits.github.io/animedetect"><img src="https://raw.githubusercontent.com/Moebits/animedetect/master/assets/animedetectlogo.png" width="600" /></a>
   </p>
   <p>
-    <a href="https://nodei.co/npm/detectanime/"><img src="https://nodei.co/npm/detectanime.png" /></a>
+    <a href="https://nodei.co/npm/animedetect/"><img src="https://nodei.co/npm/animedetect.png" /></a>
   </p>
 </div>
 
 ### About
-This package uses [**OpenCV**](https://opencv.org/) and the [**lbpcascade_animeface**](https://github.com/nagadomi/lbpcascade_animeface) cascade to detect anime faces in images, gifs, or videos. For video detection you also need to have [**ffmpeg**](https://ffmpeg.org/) installed.
+This package uses [**OpenCV.js**](https://opencv.org/) and the [**lbpcascade_animeface**](https://github.com/nagadomi/lbpcascade_animeface) cascade to detect anime faces in images, gifs, or videos. For video detection you also need to have [**ffmpeg**](https://ffmpeg.org/) installed.
 
 ### Insall
 ```ts
-npm install detectanime
+npm install animedetect
 ```
 
 #### Basic Usage

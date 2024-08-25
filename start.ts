@@ -1,6 +1,6 @@
-import detectAnime from "./anime"
+import animeDetect from "./anime"
 
 (async() => {
-    const result = await detectAnime("https://i.pximg.net/img-original/img/2018/03/30/23/05/21/67991994_p0.png", {writeDir: "./images"})
+    const result = await animeDetect("https://s1.zerochan.net/Klee.600.3643630.jpg", {writeDir: "./images"})
     console.log(result)
 })()

@@ -4,8 +4,10 @@
         "declaration": true,
         "lib": ["es2020", "dom"],
         "downlevelIteration": true,
+        "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
-        "strictNullChecks": true
+        "strictNullChecks": true,
+        "skipLibCheck": true
     }, 
     "exclude": [
         "node_modules",
