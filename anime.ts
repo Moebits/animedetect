@@ -131,9 +131,13 @@ const detectImage = async (link: string, options?: AnimeDetectOptions) => {
     const grayImg = new cv.Mat()
     cv.cvtColor(img, grayImg, cv.COLOR_RGBA2GRAY, 0)
 
-    if (!options.cascade) options.cascade = path.join(__dirname, `../cascade/lbpcascade_animeface.xml`)
-    const data = new Uint8Array(fs.readFileSync(options.cascade))
-    cv.FS_createDataFile("/", "lbpcascade_animeface.xml", data, true, false, false)
+    try {
+        if (!options.cascade) options.cascade = path.join(__dirname, `../cascade/lbpcascade_animeface.xml`)
+        const data = new Uint8Array(fs.readFileSync(options.cascade))
+        cv.FS_createDataFile("/", "lbpcascade_animeface.xml", data, true, false, false)
+    } catch {
+        // ignore
+    }
     const classifier = new cv.CascadeClassifier("lbpcascade_animeface.xml")
 
     if (!options.scaleFactor) options.scaleFactor = 1.1
